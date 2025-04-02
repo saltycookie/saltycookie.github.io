@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithmic Probability Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the visualization */
+        body {
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+            overscroll-behavior: none; /* Prevent pull-to-refresh */
+        }
+        /* Style SVG elements */
+        .node circle {
+            stroke-width: 2;
+            stroke: #333; /* Dark border for nodes */
+        }
+        .node text {
+            font-size: 10px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            fill: #fff; /* White text inside nodes */
+            font-weight: bold;
+            pointer-events: none; /* Allow clicks to pass through text */
+        }
+        .edge {
+            stroke: #666; /* Grey lines for edges */
+            stroke-width: 1.5;
+        }
+        .edge-label {
+            font-size: 10px;
+            fill: #333; /* Dark text for edge labels */
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        .layer-line {
+            stroke: #aaa; /* Light grey for layer separators */
+            stroke-width: 1;
+            stroke-dasharray: 4 4; /* Dotted line style */
+        }
+        .layer-label {
+            font-size: 12px;
+            fill: #555; /* Medium grey for layer labels */
+            font-weight: bold;
+            /* Adjust baseline to sit nicely above the line */
+            dominant-baseline: alphabetic;
+        }
+        /* Specific node colors */
+        .node-grey circle { fill: #a0aec0; } /* Tailwind gray-400 */
+        .node-green circle { fill: #48bb78; } /* Tailwind green-500 */
+        .node-red circle { fill: #f56565; } /* Tailwind red-500 */
+
+        /* Removed button classes as styles are now inline */
+        /* .control-button { ... } */
+        /* .reset-button { ... } */
+
+        /* Style bounds display */
+        .bounds-display {
+            @apply text-sm font-mono bg-gray-100 p-2 rounded border border-gray-300; /* @apply still works here if needed, but generally avoid mixing with inline */
+        }
+        /* Style legend items */
+        .legend-item {
+            @apply flex items-center space-x-2;
+        }
+        .legend-color {
+            @apply w-4 h-4 rounded-full border border-gray-400 shrink-0;
+        }
+        /* Specific text colors for legend */
+        .legend-text-grey { color: #a0aec0; font-weight: bold; }
+        .legend-text-green { color: #48bb78; font-weight: bold; }
+        .legend-text-red { color: #f56565; font-weight: bold; }
+
+    </style>
+</head>
+<body class="bg-gray-50 p-4 md:p-8 flex flex-col items-center min-h-screen">
+
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">In the Search for 42</h1>
+
+    <div class="w-full max-w-4xl flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0 md:space-x-4">
+        <div class="flex space-x-3">
+            <button id="grow-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">Expand Program</button>
+            <button id="reset-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-150 ease-in-out">Reset</button>
+        </div>
+        <div class="text-right">
+            <div class="bounds-display">
+                Lower Bound: <span id="lower-bound">0.0000</span>
+            </div>
+            <div class="bounds-display mt-1">
+                Upper Bound: <span id="upper-bound">1.0000</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-message" class="w-full max-w-4xl mt-4 mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-200 text-center text-gray-700 italic text-sm hidden">
+        </div>
+
+    <div class="w-full max-w-4xl bg-white p-3 rounded-lg shadow border border-gray-200 mb-6">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Legend</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+            <div class="legend-item">
+                <div class="legend-color bg-gray-400"></div>
+                <span><span class="legend-text-grey">Grey</span>: Valid program, output is prefix of "42" (empty or "4"). Keep expanding.</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bg-green-500"></div>
+                <span><span class="legend-text-green">Green</span>: Valid program, output starts with "42". Stop expanding; adds to Lower Bound.</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bg-red-500"></div>
+                <span><span class="legend-text-red">Red</span>: Program becomes invalid and output does not start with "42". Stop expanding; subtracts from Upper Bound.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-6xl flex-grow bg-white rounded-lg shadow border border-gray-200 overflow-auto p-2">
+        <svg id="tree-svg" width="100%" height="600">
+            </svg>
+    </div>
+
+    <script>
+        // --- Constants and State ---
+        const svg = document.getElementById('tree-svg');
+        const lowerBoundEl = document.getElementById('lower-bound');
+        const upperBoundEl = document.getElementById('upper-bound');
+        const growButton = document.getElementById('grow-button');
+        const resetButton = document.getElementById('reset-button');
+        const summaryMessageEl = document.getElementById('summary-message');
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        const NODE_RADIUS = 15;
+        const VERTICAL_SPACING = 100;
+        const HORIZONTAL_PADDING = 30;
+        // WARNING: MAX_DEPTH 16 can lead to performance issues.
+        const MAX_DEPTH = 12;
+        const LAYER_LINE_OFFSET = 20;
+        const LAYER_LABEL_OFFSET = 5;
+
+        let currentLayer = 0;
+        let lowerBound = 0.0;
+        let upperBound = 1.0;
+        let nodes = [];
+        let nodeIdCounter = 0;
+        let svgWidth = svg.clientWidth;
+        let svgHeight = 600;
+        let simulationHalted = false;
+
+        // --- Core Logic ---
+
+        function resetSimulation() {
+            console.log("Resetting simulation...");
+            currentLayer = 0;
+            lowerBound = 0.0;
+            upperBound = 1.0;
+            nodes = [];
+            nodeIdCounter = 0;
+            simulationHalted = false;
+            svg.innerHTML = '';
+            summaryMessageEl.textContent = ''; // Clear summary message
+            summaryMessageEl.classList.add('hidden'); // Hide summary div on reset
+
+            svgWidth = svg.parentElement.clientWidth || 800;
+            console.log("Resetting svgWidth to:", svgWidth);
+            svgHeight = 600;
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+            const rootId = nodeIdCounter++;
+            const rootNodeY = NODE_RADIUS + 30;
+            const rootNodeX = svgWidth / 2;
+            const rootNode = {
+                id: rootId, program: "", layer: 0, x: rootNodeX, y: rootNodeY,
+                color: 'grey', status: 'growing', parentId: null
+            };
+            nodes.push(rootNode);
+
+            drawNode(rootNode);
+            drawLayerSeparator(0, rootNodeY + NODE_RADIUS + LAYER_LINE_OFFSET);
+            updateBoundsDisplay();
+            growButton.disabled = false;
+            console.log("Reset complete.");
+        }
+
+        function showSummaryMessage() {
+            summaryMessageEl.textContent = `Simulation halted. The algorithmic probability for "42" in this run is estimated to be between ${lowerBound.toFixed(4)} and ${upperBound.toFixed(4)}.`;
+            summaryMessageEl.classList.remove('hidden'); // Show summary div
+            simulationHalted = true;
+            growButton.disabled = true;
+        }
+
+        function growProgram() {
+            if (simulationHalted) return;
+
+            if (currentLayer >= MAX_DEPTH) {
+                console.log(`Max depth (${MAX_DEPTH}) reached.`);
+                showSummaryMessage();
+                return;
+            }
+
+            const parentLayerNodes = nodes.filter(n => n.layer === currentLayer && n.status === 'growing');
+            if (parentLayerNodes.length === 0) {
+                console.log("No more nodes to grow.");
+                showSummaryMessage();
+                return;
+            }
+
+            currentLayer++;
+            const newLayerNodes = [];
+            let layerHasGreyNode = false;
+
+            const nodesInNewLayer = parentLayerNodes.length * 2;
+            const requiredWidth = nodesInNewLayer * (NODE_RADIUS * 2 + HORIZONTAL_PADDING);
+
+            // --- Dynamic SVG Resizing ---
+            let needsReposition = false;
+            if (requiredWidth > svgWidth) {
+                svgWidth = requiredWidth + 2 * HORIZONTAL_PADDING;
+                svg.setAttribute('width', svgWidth);
+                svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+                needsReposition = true;
+            }
+            const newLayerY = NODE_RADIUS + 30 + currentLayer * VERTICAL_SPACING;
+            const requiredHeight = newLayerY + NODE_RADIUS + LAYER_LINE_OFFSET + 30;
+            if (requiredHeight > svgHeight) {
+                svgHeight = requiredHeight;
+                svg.setAttribute('height', svgHeight);
+                svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+            }
+            if (needsReposition) {
+                console.log("SVG width changed, repositioning nodes...");
+                repositionNodes();
+            }
+            // --- End Resizing ---
+
+            const layerWidth = svgWidth - 2 * HORIZONTAL_PADDING;
+            const nodeSpacing = layerWidth / (nodesInNewLayer + 1);
+            let nodeIndexInLayer = 0;
+
+            parentLayerNodes.forEach(parentNode => {
+                const parentY = NODE_RADIUS + 30 + parentNode.layer * VERTICAL_SPACING;
+                const childY = parentY + VERTICAL_SPACING;
+
+                const leftChild = generateChildNode(parentNode, '0', nodeIndexInLayer++, nodeSpacing, childY);
+                newLayerNodes.push(leftChild);
+                if (leftChild.color === 'grey') layerHasGreyNode = true;
+
+                const rightChild = generateChildNode(parentNode, '1', nodeIndexInLayer++, nodeSpacing, childY);
+                newLayerNodes.push(rightChild);
+                if (rightChild.color === 'grey') layerHasGreyNode = true;
+
+                // Constraint 1 Fix
+                if (leftChild.status === 'halted-red' && rightChild.status === 'halted-red') {
+                    console.warn(`Constraint 1 fix: Forcing a child of node ${parentNode.id} ('${parentNode.program}') to grey.`);
+                    const childToFix = Math.random() < 0.5 ? leftChild : rightChild;
+                    if (childToFix.status === 'halted-red') {
+                        upperBound += Math.pow(2, -childToFix.layer);
+                    }
+                    childToFix.color = 'grey';
+                    childToFix.status = 'growing';
+                    layerHasGreyNode = true;
+                }
+            });
+
+            // Constraint 2 Fix
+            if (!layerHasGreyNode && newLayerNodes.length > 0) {
+                console.warn(`Constraint 2 fix: Forcing the last node of layer ${currentLayer} to grey.`);
+                const nodeToFix = newLayerNodes[newLayerNodes.length - 1];
+                if (nodeToFix.status === 'halted-red') {
+                    upperBound += Math.pow(2, -nodeToFix.layer);
+                } else if (nodeToFix.status === 'halted-green') {
+                    lowerBound -= Math.pow(2, -nodeToFix.layer);
+                }
+                nodeToFix.color = 'grey';
+                nodeToFix.status = 'growing';
+            }
+
+            nodes.push(...newLayerNodes);
+
+            const newLayerLineY = newLayerNodes.length > 0 ? newLayerNodes[0].y + NODE_RADIUS + LAYER_LINE_OFFSET : (NODE_RADIUS + 30 + currentLayer * VERTICAL_SPACING) + NODE_RADIUS + LAYER_LINE_OFFSET;
+            drawLayerSeparator(currentLayer, newLayerLineY);
+
+            newLayerNodes.forEach(newNode => {
+                const parent = nodes.find(n => n.id === newNode.parentId);
+                if (parent) {
+                    drawEdge(parent, newNode);
+                }
+                drawNode(newNode);
+            });
+
+            updateBoundsDisplay();
+
+            const stillGrowing = nodes.some(n => n.layer === currentLayer && n.status === 'growing');
+            if (!stillGrowing) {
+                console.log("No more nodes to grow in subsequent layers.");
+                showSummaryMessage();
+            } else if (currentLayer === MAX_DEPTH) {
+                console.log(`Max depth (${MAX_DEPTH}) reached after drawing layer.`);
+                showSummaryMessage();
+            }
+        }
+
+        function generateChildNode(parentNode, bit, nodeIndex, nodeSpacing, childY) {
+            const newProgram = parentNode.program + bit;
+            const newLayer = parentNode.layer + 1;
+            const newNodeId = nodeIdCounter++;
+
+            let color, status;
+            const pInvalid = 0.1; const pExact = 0.05; const pNotPrefix = 0.2;
+
+            if (Math.random() < pInvalid) {
+                color = 'red'; status = 'halted-red'; upperBound -= Math.pow(2, -newLayer);
+            } else {
+                const randOutcome = Math.random();
+                if (randOutcome < pExact) {
+                    color = 'green'; status = 'halted-green'; lowerBound += Math.pow(2, -newLayer);
+                } else if (randOutcome < pExact + pNotPrefix) {
+                    color = 'red'; status = 'halted-red'; upperBound -= Math.pow(2, -newLayer);
+                } else {
+                    color = 'grey'; status = 'growing';
+                }
+            }
+
+            lowerBound = Math.max(0, lowerBound);
+            upperBound = Math.min(1, upperBound);
+            if (upperBound < lowerBound) {
+                console.warn("Upper bound crossed lower bound, adjusting upper bound.");
+                upperBound = lowerBound;
+            }
+
+            const childX = HORIZONTAL_PADDING + nodeSpacing * (nodeIndex + 1);
+            const newNode = {
+                id: newNodeId, program: newProgram, layer: newLayer, x: childX, y: childY,
+                color: color, status: status, parentId: parentNode.id
+            };
+            return newNode;
+        }
+
+        function repositionNodes() {
+            svg.innerHTML = '';
+            const maxLayer = nodes.length > 0 ? Math.max(...nodes.map(n => n.layer)) : 0;
+
+            for (let l = 0; l <= maxLayer; l++) {
+                const layerNodes = nodes.filter(n => n.layer === l);
+                const nodesInLayer = layerNodes.length;
+                if (nodesInLayer === 0) continue;
+
+                const layerWidth = svgWidth - 2 * HORIZONTAL_PADDING;
+                const nodeSpacing = nodesInLayer > 0 ? layerWidth / (nodesInLayer + 1) : layerWidth;
+
+                layerNodes.sort((a, b) => {
+                    if (a.program === "") return -1; if (b.program === "") return 1;
+                    return a.program.localeCompare(b.program);
+                });
+
+                let layerY = 0;
+                layerNodes.forEach((node, index) => {
+                    node.x = HORIZONTAL_PADDING + nodeSpacing * (index + 1);
+                    node.y = NODE_RADIUS + 30 + l * VERTICAL_SPACING;
+                    layerY = node.y;
+                    drawNode(node);
+                    if (node.parentId !== null) {
+                        const parent = nodes.find(p => p.id === node.parentId);
+                        if (parent) { drawEdge(parent, node); }
+                    }
+                });
+
+                if (layerY > 0) {
+                    drawLayerSeparator(l, layerY + NODE_RADIUS + LAYER_LINE_OFFSET);
+                }
+            }
+        }
+
+        // --- Drawing Functions ---
+        function drawNode(node) {
+            const group = document.createElementNS(SVG_NS, 'g');
+            group.setAttribute('class', `node node-${node.color}`);
+            group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            circle.setAttribute('r', NODE_RADIUS);
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.textContent = node.program === "" ? "ε" : node.program;
+            if (text.textContent.length > 3) {
+                text.textContent = '...' + text.textContent.slice(-3);
+                text.style.fontSize = '8px';
+            } else if (text.textContent.length > 2) { text.style.fontSize = '9px'; }
+            group.appendChild(circle); group.appendChild(text);
+            if (svg.firstChild) { svg.insertBefore(group, svg.firstChild); } else { svg.appendChild(group); }
+        }
+
+        function drawEdge(parentNode, childNode) {
+            const line = document.createElementNS(SVG_NS, 'line');
+            line.setAttribute('class', 'edge');
+            line.setAttribute('x1', parentNode.x); line.setAttribute('y1', parentNode.y + NODE_RADIUS);
+            line.setAttribute('x2', childNode.x); line.setAttribute('y2', childNode.y - NODE_RADIUS);
+            if (svg.firstChild) { svg.insertBefore(line, svg.firstChild); } else { svg.appendChild(line); }
+
+            const edgeLabel = childNode.program.slice(-1);
+            const midX = (parentNode.x + childNode.x) / 2; const midY = (parentNode.y + childNode.y) / 2;
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('class', 'edge-label');
+            text.setAttribute('x', midX + (edgeLabel === '0' ? -6 : 6)); text.setAttribute('y', midY);
+            text.textContent = edgeLabel; svg.appendChild(text);
+        }
+
+        function drawLayerSeparator(layerIndex, yPos) {
+            const line = document.createElementNS(SVG_NS, 'line');
+            line.setAttribute('class', 'layer-line');
+            line.setAttribute('x1', 0); line.setAttribute('y1', yPos);
+            line.setAttribute('x2', svgWidth); line.setAttribute('y2', yPos);
+            svg.appendChild(line);
+
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('class', 'layer-label');
+            text.setAttribute('x', 10); text.setAttribute('y', yPos - LAYER_LABEL_OFFSET);
+            text.textContent = `L=${layerIndex}`; svg.appendChild(text);
+        }
+
+        function updateBoundsDisplay() {
+            lowerBoundEl.textContent = lowerBound.toFixed(4);
+            upperBoundEl.textContent = upperBound.toFixed(4);
+        }
+
+        // --- Event Listeners ---
+        growButton.addEventListener('click', growProgram);
+        resetButton.addEventListener('click', resetSimulation);
+
+        // --- Initial Setup ---
+        requestAnimationFrame(resetSimulation);
+
+        // Optional: Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const newWidth = svg.parentElement.clientWidth;
+                if (newWidth > 0 && newWidth !== svgWidth) {
+                    console.log(`Resizing SVG width from ${svgWidth} to ${newWidth}`);
+                    svgWidth = newWidth;
+                    svg.setAttribute('width', svgWidth);
+                    svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+                    repositionNodes();
+                }
+            }, 250);
+        });
+
+    </script>
+
+</body>
+</html>
