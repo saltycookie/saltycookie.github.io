@@ -160,16 +160,35 @@ button:hover {
   border-radius: 3px;
 }
 
-/* Maximize button for slideshow */
+/* Maximize button for slideshow (now Fullscreen button with Material Icon) */
 .maximize-slideshow {
   position: absolute;
-  top: 10px; /* Adjust as needed */
-  right: 10px; /* Adjust as needed for spacing from the next button if it were outside */
-  padding: 8px 12px;
-  font-size: 0.9em;
-  z-index: 10; /* Ensure it's above slides but potentially below next/prev if they overlap */
-  /* Using existing button styles by default, can be customized further */
+  top: 10px;
+  right: 10px;
+  padding: 6px 8px; /* Adjust padding for icon button */
+  font-size: 1em; /* Reset font-size if previously smaller for text */
+  z-index: 10;
+  background-color: rgba(44, 62, 80, 0.7); /* Match .prev/.next background */
+  color: var(--light-text-color); /* Match .prev/.next icon color */
+  border: none; /* Ensure no default border */
+  border-radius: 3px; /* Match .prev/.next border-radius */
+  cursor: pointer; /* Ensure cursor indicates interactivity */
+  transition: background-color 0.3s ease; /* Match .prev/.next transition */
+  line-height: 1; /* Helps align icon vertically */
+  display: inline-flex; /* Helps align icon vertically */
+  align-items: center; /* Helps align icon vertically */
+  justify-content: center; /* Helps align icon horizontally */
 }
+
+.maximize-slideshow .material-icons {
+  font-size: 24px; /* Standard size for Material Icons, adjust as needed */
+  vertical-align: middle; /* Another way to help with alignment */
+}
+
+.maximize-slideshow:hover {
+  background-color: var(--primary-color); /* Match .prev/.next hover */
+}
+
 
 /* Fullscreen specific styles (optional, browser handles most) */
 /* You can style the ::backdrop pseudo-element if needed */

@@ -39,13 +39,26 @@ document.addEventListener('DOMContentLoaded', () => {
       nextButton.addEventListener('click', nextSlide);
     }
 
-    if (maximizeButton) {
-      maximizeButton.textContent = 'Fullscreen'; // Initial text
+    const maximizeButtonIcon = maximizeButton ? maximizeButton.querySelector('.material-icons') : null;
+
+    if (maximizeButton && maximizeButtonIcon) {
+      // Initial icon is set in HTML, no need to set it here unless we want to override
+      // maximizeButtonIcon.textContent = 'fullscreen';
       maximizeButton.addEventListener('click', () => {
         if (!document.fullscreenElement) {
-          slideshow.requestFullscreen().catch(err => {
-            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-          });
+          slideshow.requestFullscreen()
+            .then(() => {
+              // Try to lock orientation to landscape on mobile after entering fullscreen
+              if (screen.orientation && typeof screen.orientation.lock === 'function') {
+                screen.orientation.lock('landscape-primary')
+                  .catch(err => {
+                    console.warn(`Could not lock screen orientation: ${err.message} (${err.name})`);
+                  });
+              }
+            })
+            .catch(err => {
+              alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
         } else {
           if (document.exitFullscreen) {
             document.exitFullscreen();
@@ -54,12 +67,31 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Update button text based on fullscreen state changes (e.g. ESC key press)
+    // Update button icon and title based on fullscreen state changes
     document.addEventListener('fullscreenchange', () => {
-      if (document.fullscreenElement === slideshow) {
-        maximizeButton.textContent = 'Exit Fullscreen';
-      } else {
-        maximizeButton.textContent = 'Fullscreen';
+      if (maximizeButton && maximizeButtonIcon) { // Ensure button and icon exist
+        if (document.fullscreenElement === slideshow) {
+          maximizeButtonIcon.textContent = 'fullscreen_exit';
+          maximizeButton.title = 'Exit Fullscreen';
+        } else {
+          // Check if the maximizeButton belongs to the slideshow that was fullscreen
+          // This is a bit simplified; if multiple slideshows could be involved,
+          // this listener would need to be more specific or duplicated per slideshow.
+          // For now, assuming one main slideshow or the listener is general enough.
+          maximizeButtonIcon.textContent = 'fullscreen';
+          maximizeButton.title = 'Fullscreen';
+        }
+      }
+
+      // Unlock orientation when exiting fullscreen
+      if (!document.fullscreenElement) {
+        if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+          try {
+            screen.orientation.unlock();
+          } catch (err) {
+            console.warn(`Could not unlock screen orientation: ${err.message} (${err.name})`);
+          }
+        }
       }
     });
 
