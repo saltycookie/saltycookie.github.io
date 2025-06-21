@@ -171,38 +171,47 @@ button:hover {
   /* Using existing button styles by default, can be customized further */
 }
 
-/* Styles for maximized slideshow */
-.slideshow-maximized {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--background-color); /* Or a specific overlay color */
-  z-index: 1000; /* Ensure it's on top of everything */
-  overflow-y: auto; /* Allow scrolling if content is too tall */
+/* Fullscreen specific styles (optional, browser handles most) */
+/* You can style the ::backdrop pseudo-element if needed */
+.slideshow-container:-webkit-full-screen { /* For Chrome, Safari, Opera */
+  background-color: var(--background-color); /* Ensure background consistency */
+}
+.slideshow-container:-moz-full-screen { /* For Firefox */
+  background-color: var(--background-color);
+}
+.slideshow-container:-ms-fullscreen { /* For IE/Edge */
+  background-color: var(--background-color);
+}
+.slideshow-container:fullscreen { /* Standard */
+  background-color: var(--background-color);
 }
 
-.slideshow-maximized .slide {
-  height: 100%; /* Make slides take full height of the maximized container */
-  padding: 60px; /* Adjust padding for maximized view */
-  box-sizing: border-box; /* Ensure padding doesn't add to height */
+/* Example: Style slides specifically when in fullscreen */
+.slideshow-container:fullscreen .slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* Ensure slide takes full height */
+  box-sizing: border-box;
+  padding: 40px; /* Or adjust as needed for fullscreen */
 }
 
-.slideshow-maximized .prev, .slideshow-maximized .next {
-  /* Adjust button positions if needed for maximized view */
-  margin-top: -30px; /* Example adjustment */
-  font-size: 24px; /* Example adjustment */
-  padding: 20px;
+.slideshow-container:fullscreen .prev,
+.slideshow-container:fullscreen .next {
+    /* Example: Make buttons larger in fullscreen */
+    font-size: 24px;
+    padding: 20px;
+    margin-top: -30px; /* Adjust vertical centering */
 }
 
-.slideshow-maximized .maximize-slideshow {
-  /* Reposition or restyle the maximize/minimize button in maximized state */
-  top: 20px;
-  right: 20px;
-  /* Ensure it's still accessible */
+.slideshow-container:fullscreen .maximize-slideshow {
+    /* Ensure the button is positioned well in fullscreen */
+    top: 20px;
+    right: 20px;
 }
 
-.slideshow-maximized .slide-counter {
-  bottom: 20px; /* Adjust position for maximized view */
+.slideshow-container:fullscreen .slide-counter {
+    bottom: 20px; /* Adjust position */
+    font-size: 1em;
 }
