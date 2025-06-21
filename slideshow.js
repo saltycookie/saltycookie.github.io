@@ -95,44 +95,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   });
 
-  // Keyboard navigation for all slideshows on the page (if any are active/visible)
+  // Keyboard navigation for all slideshows on the page
   document.addEventListener('keydown', (e) => {
-    // Find the currently "active" slideshow. This is a simple heuristic:
-    // It assumes the first visible slideshow or the maximized one is the target.
-    // More complex scenarios might need a more robust way to determine the active slideshow.
-    let activeSlideshow = document.querySelector('.slideshow-maximized');
-    if (!activeSlideshow) {
-      // If no slideshow is maximized, find the first one that's at least partially visible.
-      // This part is tricky without knowing exact layout or if multiple slideshows are present.
-      // For simplicity, we'll just target the first slideshow found if not maximized.
-      // A better approach might involve checking if the slideshow is in the viewport.
+    let targetSlideshow = null;
+
+    if (document.fullscreenElement && document.fullscreenElement.classList.contains('slideshow-container')) {
+      targetSlideshow = document.fullscreenElement;
+    } else if (!document.fullscreenElement) {
+      // If not in fullscreen, find the first visible slideshow.
+      // This heuristic might need adjustment if multiple non-fullscreen slideshows are interactive.
       const allSlideshows = document.querySelectorAll('.slideshow-container');
-      if (allSlideshows.length > 0) {
-          // Check if any slideshow is currently visible (e.g. not display:none itself or an ancestor)
-          for(let ss of allSlideshows) {
-              if (ss.offsetParent !== null) { // A simple check for visibility
-                  activeSlideshow = ss;
-                  break;
-              }
-          }
+      for (let ss of allSlideshows) {
+        if (ss.offsetParent !== null) { // A simple check for visibility
+          targetSlideshow = ss;
+          break;
+        }
       }
     }
 
-    if (activeSlideshow) {
-      // We need to find the specific functions (nextSlide, prevSlide) for this active slideshow.
-      // The current structure of slideshow.js scopes these functions.
-      // To make this work cleanly, we might need to refactor how slideshows are managed
-      // or re-select buttons within the activeSlideshow context here.
-
-      // For now, let's assume we can find the buttons and trigger a click.
-      // This is a workaround. A better way would be to have access to nextSlide/prevSlide directly.
-      const nextButton = activeSlideshow.querySelector('.next');
-      const prevButton = activeSlideshow.querySelector('.prev');
+    if (targetSlideshow) {
+      const nextButton = targetSlideshow.querySelector('.next');
+      const prevButton = targetSlideshow.querySelector('.prev');
 
       if (e.key === 'ArrowRight' && nextButton) {
-        nextButton.click(); // Trigger the click event on the next button
+        // Prevent default browser action for arrow keys if they might scroll the page
+        // especially when an element inside the slideshow might have focus.
+        // However, fullscreen often traps events, so this might not be strictly necessary there.
+        // e.preventDefault();
+        nextButton.click();
       } else if (e.key === 'ArrowLeft' && prevButton) {
-        prevButton.click(); // Trigger the click event on the prev button
+        // e.preventDefault();
+        prevButton.click();
       }
     }
   });
