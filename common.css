@@ -159,3 +159,50 @@ button:hover {
   background-color: rgba(236, 240, 241, 0.8); /* Light Gray with transparency */
   border-radius: 3px;
 }
+
+/* Maximize button for slideshow */
+.maximize-slideshow {
+  position: absolute;
+  top: 10px; /* Adjust as needed */
+  right: 10px; /* Adjust as needed for spacing from the next button if it were outside */
+  padding: 8px 12px;
+  font-size: 0.9em;
+  z-index: 10; /* Ensure it's above slides but potentially below next/prev if they overlap */
+  /* Using existing button styles by default, can be customized further */
+}
+
+/* Styles for maximized slideshow */
+.slideshow-maximized {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--background-color); /* Or a specific overlay color */
+  z-index: 1000; /* Ensure it's on top of everything */
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+}
+
+.slideshow-maximized .slide {
+  height: 100%; /* Make slides take full height of the maximized container */
+  padding: 60px; /* Adjust padding for maximized view */
+  box-sizing: border-box; /* Ensure padding doesn't add to height */
+}
+
+.slideshow-maximized .prev, .slideshow-maximized .next {
+  /* Adjust button positions if needed for maximized view */
+  margin-top: -30px; /* Example adjustment */
+  font-size: 24px; /* Example adjustment */
+  padding: 20px;
+}
+
+.slideshow-maximized .maximize-slideshow {
+  /* Reposition or restyle the maximize/minimize button in maximized state */
+  top: 20px;
+  right: 20px;
+  /* Ensure it's still accessible */
+}
+
+.slideshow-maximized .slide-counter {
+  bottom: 20px; /* Adjust position for maximized view */
+}
