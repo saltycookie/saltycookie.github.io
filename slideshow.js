@@ -40,23 +40,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (maximizeButton) {
+      maximizeButton.textContent = 'Fullscreen'; // Initial text
       maximizeButton.addEventListener('click', () => {
-        if (slideshow.classList.contains('slideshow-maximized')) {
-          slideshow.classList.remove('slideshow-maximized');
-          maximizeButton.textContent = 'Maximize';
-          // Optional: Restore original scroll position or other states if needed
+        if (!document.fullscreenElement) {
+          slideshow.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
         } else {
-          slideshow.classList.add('slideshow-maximized');
-          maximizeButton.textContent = 'Minimize';
-          // Optional: Scroll to top or other adjustments when maximized
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
         }
       });
     }
+
+    // Update button text based on fullscreen state changes (e.g. ESC key press)
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement === slideshow) {
+        maximizeButton.textContent = 'Exit Fullscreen';
+      } else {
+        maximizeButton.textContent = 'Fullscreen';
+      }
+    });
 
     // Initialize the first slide
     if (slides.length > 0) {
       showSlide(0);
     }
+
+    // Swipe navigation
+    let touchstartX = 0;
+    let touchendX = 0;
+    const swipeThreshold = 50; // Minimum distance for a swipe
+
+    slideshow.addEventListener('touchstart', function(event) {
+      touchstartX = event.changedTouches[0].screenX;
+    }, false);
+
+    slideshow.addEventListener('touchend', function(event) {
+      touchendX = event.changedTouches[0].screenX;
+      handleSwipe();
+    }, false);
+
+    function handleSwipe() {
+      if (touchendX < touchstartX - swipeThreshold) {
+        // Swiped left
+        nextSlide();
+      }
+      if (touchendX > touchstartX + swipeThreshold) {
+        // Swiped right
+        prevSlide();
+      }
+    }
+
   });
 
   // Keyboard navigation for all slideshows on the page (if any are active/visible)
