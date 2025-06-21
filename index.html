@@ -1,1 +1,64 @@
-Hello world!
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS & Math Visualizations</title>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to CS & Math Visualizations!</h1>
+    </header>
+
+    <div class="page-container">
+        <h2>Demo Slideshow</h2>
+        <p>This is an example of how the slideshow structure can be used. Each concept or step in a visualization can be a slide.</p>
+
+        <div class="slideshow-container">
+            <!-- Slide 1 -->
+            <div class="slide">
+                <h3>Slide 1: Introduction</h3>
+                <p>This is the first slide. It can introduce a concept.</p>
+                <img src="https://via.placeholder.com/400x200/3498db/ffffff?text=Concept+Image+1" alt="Placeholder Image 1">
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="slide">
+                <h3>Slide 2: Details</h3>
+                <p>This slide can provide more details or a step-by-step explanation.</p>
+                <p>For example, we can show <code>code snippets</code> or mathematical formulas like \( E = mc^2 \).</p>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="slide">
+                <h3>Slide 3: Visualization</h3>
+                <p>This slide could contain an interactive element or a more complex visual.</p>
+                <button onclick="alert('Interactive element clicked!')">Click Me!</button>
+            </div>
+
+            <!-- Slide 4 -->
+            <div class="slide">
+                <h3>Slide 4: Conclusion</h3>
+                <p>Summarize the concept or provide links to further resources.</p>
+                <a href="#">Learn More</a>
+            </div>
+
+            <!-- Navigation buttons -->
+            <button class="prev">&#10094;</button>
+            <button class="next">&#10095;</button>
+
+            <!-- Slide counter -->
+            <div class="slide-counter"></div>
+        </div>
+
+        <p>The common styles for headings, paragraphs, links, and buttons are applied throughout the page.</p>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 CS & Math Visualizations</p>
+    </footer>
+
+    <script src="slideshow.js"></script>
+</body>
+</html>
