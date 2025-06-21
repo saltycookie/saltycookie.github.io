@@ -46,9 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // maximizeButtonIcon.textContent = 'fullscreen';
       maximizeButton.addEventListener('click', () => {
         if (!document.fullscreenElement) {
-          slideshow.requestFullscreen().catch(err => {
-            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-          });
+          slideshow.requestFullscreen()
+            .then(() => {
+              // Try to lock orientation to landscape on mobile after entering fullscreen
+              if (screen.orientation && typeof screen.orientation.lock === 'function') {
+                screen.orientation.lock('landscape-primary')
+                  .catch(err => {
+                    console.warn(`Could not lock screen orientation: ${err.message} (${err.name})`);
+                  });
+              }
+            })
+            .catch(err => {
+              alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
         } else {
           if (document.exitFullscreen) {
             document.exitFullscreen();
@@ -70,6 +80,17 @@ document.addEventListener('DOMContentLoaded', () => {
           // For now, assuming one main slideshow or the listener is general enough.
           maximizeButtonIcon.textContent = 'fullscreen';
           maximizeButton.title = 'Fullscreen';
+        }
+      }
+
+      // Unlock orientation when exiting fullscreen
+      if (!document.fullscreenElement) {
+        if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+          try {
+            screen.orientation.unlock();
+          } catch (err) {
+            console.warn(`Could not unlock screen orientation: ${err.message} (${err.name})`);
+          }
         }
       }
     });
