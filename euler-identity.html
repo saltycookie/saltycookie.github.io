@@ -300,7 +300,7 @@
             canvas.drawPoint([-1, 0], '#f43f5e', 6); // Target point for e^(i*pi)
             
             // Draw n value
-            canvas.drawText(`n = ${n}`, 20, 20, '#a5b4fc', 32);
+            canvas.drawText(`n = ${n}`, 20, 20, '#a5b4fc', 24);
 
             // FIX: Add a guard clause to prevent drawing if pathPoints is not initialized.
             // This prevents errors on resize before the first animation has started.
@@ -338,11 +338,17 @@
             
             // The exponent is `step` during animation, and snaps to `n` when done.
             const exponent = (step > n) ? n : step;
-            canvas.drawText(`(1 + iπ/${n})^${exponent}`, canvasWidth / 2, canvasHeight - 160, '#e0e7ff', 32, 'center', 'middle');
+
+            // Adjusted y-position to be closer to the bottom
+            // canvasHeight is in physical pixels here, as it's canvas.height / window.devicePixelRatio
+            const baseY = canvasHeight * 0.92; // Base Y position for the top of the result text
+            const spacing = 10; // Spacing between expression and result text (in logical pixels)
+
+            canvas.drawText(`(1 + iπ/${n})^${exponent}`, canvasWidth / 2, baseY - spacing, '#e0e7ff', 24, 'center', 'bottom');
 
             // The final calculated result is ONLY visible when the animation for 'n' is done.
             if (finalResultText) {
-                canvas.drawText(`= ${finalResultText}`, canvasWidth / 2, canvasHeight - 80, '#34d399', 48, 'center', 'middle'); // Reduced font size from 64 to 48
+                canvas.drawText(`= ${finalResultText}`, canvasWidth / 2, baseY, '#34d399', 36, 'center', 'top');
             }
         }
 
