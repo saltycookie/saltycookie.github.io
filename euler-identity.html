@@ -14,7 +14,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overflow: hidden;
+            /* overflow: hidden; */ /* Removed for better mobile responsiveness */
         }
         .slider-thumb::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -138,12 +138,18 @@
 
             resize() {
                 const parent = this.canvas.parentElement;
-                const size = Math.min(parent.clientWidth, parent.clientHeight) - 4; // -4 for padding
+                // Get the content-box dimensions of the parent
+                const style = window.getComputedStyle(parent);
+                const parentContentWidth = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                const parentContentHeight = parent.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+
+                const size = Math.min(parentContentWidth, parentContentHeight); // No extra subtraction needed here
+
                 this.canvas.width = size * window.devicePixelRatio;
                 this.canvas.height = size * window.devicePixelRatio;
                 this.canvas.style.width = `${size}px`;
                 this.canvas.style.height = `${size}px`;
-                this.scale = this.canvas.width / 7.0; // Use a wider view to fit pi
+                this.scale = this.canvas.width / 7.0;
                 this.origin = { x: this.canvas.width / 2, y: this.canvas.height / 2 };
             }
 
@@ -169,6 +175,32 @@
                 this.ctx.beginPath();
                 this.ctx.arc(center.x, center.y, 1 * this.scale, 0, 2 * Math.PI);
                 this.ctx.stroke();
+            }
+
+            drawAxisMarkers() {
+                const markerColor = 'rgba(200, 200, 200, 0.7)';
+                const labelColor = 'rgba(220, 220, 220, 0.9)';
+                const markerRadius = 3;
+                const labelOffset = 15 * window.devicePixelRatio; // Offset for labels from points
+                const labelSize = 14;
+
+                const points = [
+                    { point: [1, 0], label: "1", align: 'left', baseline: 'middle', offset: [labelOffset, 0] },
+                    { point: [-1, 0], label: "-1", align: 'right', baseline: 'middle', offset: [-labelOffset, 0] },
+                    { point: [0, 1], label: "i", align: 'center', baseline: 'bottom', offset: [0, -labelOffset / 2] },
+                    { point: [0, -1], label: "-i", align: 'center', baseline: 'top', offset: [0, labelOffset / 2] }
+                ];
+
+                points.forEach(p => {
+                    this.drawPoint(p.point, markerColor, markerRadius);
+                    const pos = this.transformPoint(p.point);
+                    // Use canvas context directly for text to avoid double scaling of coordinates
+                    this.ctx.fillStyle = labelColor;
+                    this.ctx.font = `bold ${labelSize * window.devicePixelRatio}px Inter`;
+                    this.ctx.textAlign = p.align;
+                    this.ctx.textBaseline = p.baseline;
+                    this.ctx.fillText(p.label, pos.x + p.offset[0], pos.y + p.offset[1]);
+                });
             }
 
             drawVector(z, color, lineWidth = 2) {
@@ -264,7 +296,8 @@
             canvas.clear();
             canvas.drawAxes();
             canvas.drawUnitCircle();
-            canvas.drawPoint([-1, 0], '#f43f5e', 6);
+            canvas.drawAxisMarkers(); // Add this line
+            canvas.drawPoint([-1, 0], '#f43f5e', 6); // Target point for e^(i*pi)
             
             // Draw n value
             canvas.drawText(`n = ${n}`, 20, 20, '#a5b4fc', 32);
