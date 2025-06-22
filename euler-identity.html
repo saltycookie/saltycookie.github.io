@@ -196,7 +196,7 @@
                     const pos = this.transformPoint(p.point);
                     // Use canvas context directly for text to avoid double scaling of coordinates
                     this.ctx.fillStyle = labelColor;
-                    this.ctx.font = `bold ${labelSize * window.devicePixelRatio}px Inter`;
+                    this.ctx.font = `bold ${labelSize * window.devicePixelRatio}px "Times New Roman", serif`;
                     this.ctx.textAlign = p.align;
                     this.ctx.textBaseline = p.baseline;
                     this.ctx.fillText(p.label, pos.x + p.offset[0], pos.y + p.offset[1]);
@@ -241,7 +241,7 @@
             
             drawText(text, x, y, color, size, align = 'left', baseline = 'top') {
                 this.ctx.fillStyle = color;
-                this.ctx.font = `bold ${size * window.devicePixelRatio}px Inter`;
+                this.ctx.font = `bold ${size * window.devicePixelRatio}px "Times New Roman", serif`;
                 this.ctx.textAlign = align;
                 this.ctx.textBaseline = baseline;
                 this.ctx.fillText(text, x * window.devicePixelRatio, y * window.devicePixelRatio);
@@ -342,7 +342,7 @@
 
             // The final calculated result is ONLY visible when the animation for 'n' is done.
             if (finalResultText) {
-                canvas.drawText(`= ${finalResultText}`, canvasWidth / 2, canvasHeight - 80, '#34d399', 64, 'center', 'middle');
+                canvas.drawText(`= ${finalResultText}`, canvasWidth / 2, canvasHeight - 80, '#34d399', 48, 'center', 'middle'); // Reduced font size from 64 to 48
             }
         }
 
